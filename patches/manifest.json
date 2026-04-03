@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "generatedForTask": "Task 4 patch inventory bootstrap",
+  "packages": [
+    {
+      "name": "opencode-anthropic-auth",
+      "kind": "source-text patch",
+      "upstream": {
+        "repo": "https://github.com/ex-machina-co/opencode-anthropic-auth.git",
+        "sha": "6594dd1f1ff8b63342f83173d4477f8b549b4867"
+      },
+      "fixtureRoot": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867",
+      "sourceFiles": [
+        {
+          "upstreamPath": "src/index.ts",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/src/index.ts",
+          "sha256": "fb46aacd3225c8ce3de1441549fcd4d12f7c288c9d7951d964210f6e5b5bd124"
+        },
+        {
+          "upstreamPath": "src/auth.ts",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/src/auth.ts",
+          "sha256": "3b5d755d5c874e0c3994224ad078ae2d2d58ba7bbbf7fe95195599834b781a76"
+        },
+        {
+          "upstreamPath": "src/constants.ts",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/src/constants.ts",
+          "sha256": "801485df68d44af1a560f18a3cb3b176541d5d93005c65d3ea4c9f73e486b389"
+        },
+        {
+          "upstreamPath": "src/transform.ts",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/src/transform.ts",
+          "sha256": "51b0f8b7750a0e6165c9ba866dab1747ca41b21d6aa7b929b401614738a6ddaf"
+        },
+        {
+          "upstreamPath": "src/tests/index.test.ts",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/src/tests/index.test.ts",
+          "sha256": "47347f97f3bb23e4f033409a08f8b017e7cb8785df561b6a1c1e1ffd3319e905"
+        },
+        {
+          "upstreamPath": "src/tests/auth.test.ts",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/src/tests/auth.test.ts",
+          "sha256": "d560d2f4a4f48877a58debe1bfbda5c69136d7410ab695e707758763ee4271d3"
+        },
+        {
+          "upstreamPath": "src/tests/transform.test.ts",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/src/tests/transform.test.ts",
+          "sha256": "8a1c66c7134f0ec0e0467124ba853bdf137051a210728bb0619659a37f52c40f"
+        },
+        {
+          "upstreamPath": "package.json",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/package.json",
+          "sha256": "ff762e73fe29edc779d1e178fe522b89a3ee4e40d9062e38e5ba6ec7c52211c8"
+        },
+        {
+          "upstreamPath": "README.md",
+          "fixturePath": "fixtures/upstream/opencode-anthropic-auth/6594dd1f1ff8b63342f83173d4477f8b549b4867/README.md",
+          "sha256": "7a0bdb1fd17e2a32909de37f65e01396b6e245ad46660ae6b8fd06513e4f287f"
+        }
+      ],
+      "preflightTargetChecks": [
+        {
+          "targetPath": "src/index.ts",
+          "contains": "if (!auth.access || !auth.expires || auth.expires < Date.now())"
+        },
+        {
+          "targetPath": "src/index.ts",
+          "contains": "grant_type: 'refresh_token'"
+        }
+      ],
+      "patchFiles": [
+        {
+          "path": "patches/opencode-anthropic-auth/0001-refresh-lock.patch",
+          "sha256": "2f03cb73d05d49ed3c29c2e616075df93e11ea0d61b207fed52643302f8881e8"
+        }
+      ],
+      "rollbackMarkerNaming": "rollback.opencode-anthropic-auth.<timestamp>.pre-task7"
+    }
+  ],
+  "referenceFixtures": [
+    {
+      "name": "not-claude-code-emulator",
+      "upstream": {
+        "repo": "https://github.com/code-yeongyu/not-claude-code-emulator.git",
+        "sha": "5541e5c1cb0895cfd4390391dc642c74fc5d0a1a"
+      },
+      "files": [
+        {
+          "upstreamPath": "README.md",
+          "fixturePath": "fixtures/upstream/not-claude-code-emulator/5541e5c1cb0895cfd4390391dc642c74fc5d0a1a/README.md",
+          "sha256": "7dd1294b62021ff0be921c493094a96096217267b18d6052ed33136cb3f51264"
+        }
+      ],
+      "usage": "reference-only"
+    }
+  ]
+}

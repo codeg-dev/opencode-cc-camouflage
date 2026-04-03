@@ -1,0 +1,274 @@
+diff --git a/src/index.ts b/src/index.ts
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -8,6 +8,122 @@
+   rewriteUrl,
+   setOAuthHeaders,
+ } from './transform'
++
++const oauthRefreshLocks = new Map<
++  string,
++  Promise<{ refresh: string; access: string; expires: number }>
++>()
++
++async function refreshOAuthAccess(
++  auth: { refresh?: string },
++  client: unknown,
++): Promise<{ refresh: string; access: string; expires: number }> {
++  const refreshKey =
++    typeof auth.refresh === 'string' && auth.refresh
++      ? auth.refresh
++      : '__missing_refresh__'
++  const existing = oauthRefreshLocks.get(refreshKey)
++  if (existing) {
++    return await existing
++  }
++
++  const promise = (async () => {
++    const maxRetries = 2
++    const baseDelayMs = 500
++
++    for (let attempt = 0; attempt <= maxRetries; attempt++) {
++      try {
++        if (attempt > 0) {
++          const delay = baseDelayMs * 2 ** (attempt - 1)
++          await new Promise((resolve) => setTimeout(resolve, delay))
++        }
++
++        const response = await fetch(TOKEN_URL, {
++          method: 'POST',
++          headers: {
++            'Content-Type': 'application/json',
++            Accept: 'application/json, text/plain, */*',
++            'User-Agent': 'axios/1.13.6',
++          },
++          body: JSON.stringify({
++            grant_type: 'refresh_token',
++            refresh_token: auth.refresh,
++            client_id: CLIENT_ID,
++          }),
++        })
++
++        if (!response.ok) {
++          if (response.status >= 500 && attempt < maxRetries) {
++            await response.body?.cancel()
++            continue
++          }
++
++          let detail = ''
++          try {
++            detail = await response.text()
++          } catch {
++            detail = ''
++          }
++
++          const suffix = detail ? `: ${detail}` : ''
++          throw new Error(`Token refresh failed: ${response.status}${suffix}`)
++        }
++
++        const json = (await response.json()) as {
++          refresh_token: string
++          access_token: string
++          expires_in: number
++        }
++
++        const nextAuth = {
++          refresh: json.refresh_token,
++          access: json.access_token,
++          expires: Date.now() + json.expires_in * 1000,
++        }
++
++        await (client as any).auth.set({
++          path: {
++            id: 'anthropic',
++          },
++          body: {
++            type: 'oauth',
++            refresh: nextAuth.refresh,
++            access: nextAuth.access,
++            expires: nextAuth.expires,
++          },
++        })
++
++        return nextAuth
++      } catch (error) {
++        const isNetworkError =
++          error instanceof Error &&
++          (error.message.includes('fetch failed') ||
++            ('code' in error &&
++              (error.code === 'ECONNRESET' ||
++                error.code === 'ECONNREFUSED' ||
++                error.code === 'ETIMEDOUT' ||
++                error.code === 'UND_ERR_CONNECT_TIMEOUT')))
++
++        if (attempt < maxRetries && isNetworkError) {
++          continue
++        }
++
++        throw error
++      }
++    }
++
++    throw new Error('Token refresh failed: retry loop exhausted')
++  })()
++
++  oauthRefreshLocks.set(refreshKey, promise)
++  try {
++    return await promise
++  } finally {
++    if (oauthRefreshLocks.get(refreshKey) === promise) {
++      oauthRefreshLocks.delete(refreshKey)
++    }
++  }
++}
+ 
+ export const AnthropicAuthPlugin: Plugin = async ({ client }) => {
+   return {
+@@ -52,78 +168,10 @@
+               const auth = await getAuth()
+               if (auth.type !== 'oauth') return fetch(input, init)
+               if (!auth.access || !auth.expires || auth.expires < Date.now()) {
+-                const maxRetries = 2
+-                const baseDelayMs = 500
+-
+-                for (let attempt = 0; attempt <= maxRetries; attempt++) {
+-                  try {
+-                    if (attempt > 0) {
+-                      const delay = baseDelayMs * 2 ** (attempt - 1)
+-                      await new Promise((resolve) => setTimeout(resolve, delay))
+-                    }
+-
+-                    const response = await fetch(TOKEN_URL, {
+-                      method: 'POST',
+-                      headers: {
+-                        'Content-Type': 'application/json',
+-                        Accept: 'application/json, text/plain, */*',
+-                        'User-Agent': 'axios/1.13.6',
+-                      },
+-                      body: JSON.stringify({
+-                        grant_type: 'refresh_token',
+-                        refresh_token: auth.refresh,
+-                        client_id: CLIENT_ID,
+-                      }),
+-                    })
+-
+-                    if (!response.ok) {
+-                      if (response.status >= 500 && attempt < maxRetries) {
+-                        await response.body?.cancel()
+-                        continue
+-                      }
+-
+-                      throw new Error(
+-                        `Token refresh failed: ${response.status}`,
+-                      )
+-                    }
+-
+-                    const json = (await response.json()) as {
+-                      refresh_token: string
+-                      access_token: string
+-                      expires_in: number
+-                    }
+-
+-                    // biome-ignore lint/suspicious/noExplicitAny: SDK types don't expose auth.set
+-                    await (client as any).auth.set({
+-                      path: {
+-                        id: 'anthropic',
+-                      },
+-                      body: {
+-                        type: 'oauth',
+-                        refresh: json.refresh_token,
+-                        access: json.access_token,
+-                        expires: Date.now() + json.expires_in * 1000,
+-                      },
+-                    })
+-                    auth.access = json.access_token
+-                    break
+-                  } catch (error) {
+-                    const isNetworkError =
+-                      error instanceof Error &&
+-                      (error.message.includes('fetch failed') ||
+-                        ('code' in error &&
+-                          (error.code === 'ECONNRESET' ||
+-                            error.code === 'ECONNREFUSED' ||
+-                            error.code === 'ETIMEDOUT' ||
+-                            error.code === 'UND_ERR_CONNECT_TIMEOUT')))
+-
+-                    if (attempt < maxRetries && isNetworkError) {
+-                      continue
+-                    }
+-
+-                    throw error
+-                  }
+-                }
++                const nextAuth = await refreshOAuthAccess(auth, client)
++                auth.refresh = nextAuth.refresh
++                auth.access = nextAuth.access
++                auth.expires = nextAuth.expires
+               }
+ 
+               const requestHeaders = mergeHeaders(input, init)
+diff --git a/src/transform.ts b/src/transform.ts
+--- a/src/transform.ts
++++ b/src/transform.ts
+@@ -1,6 +1,19 @@
+ import { REQUIRED_BETAS, TOOL_PREFIX } from './constants'
+ 
+ export type FetchInput = string | URL | Request
++
++function resolveEmulatorBaseUrl(): URL | null {
++  const raw = process.env.CC_CAMOUFLAGE_EMULATOR_BASE_URL?.trim()
++  if (!raw) {
++    return null
++  }
++
++  try {
++    return new URL(raw)
++  } catch {
++    return null
++  }
++}
+ 
+ /**
+  * Merge headers from a Request object and/or a RequestInit headers value
+@@ -133,6 +146,7 @@
+   url: URL | null
+ } {
+   let requestUrl: URL | null = null
++  const emulatorBaseUrl = resolveEmulatorBaseUrl()
+   try {
+     if (typeof input === 'string' || input instanceof URL) {
+       requestUrl = new URL(input.toString())
+@@ -143,17 +157,24 @@
+     requestUrl = null
+   }
+ 
+-  if (
+-    requestUrl &&
+-    requestUrl.pathname === '/v1/messages' &&
+-    !requestUrl.searchParams.has('beta')
+-  ) {
+-    requestUrl.searchParams.set('beta', 'true')
++  if (requestUrl && requestUrl.pathname.endsWith('/v1/messages')) {
++    const targetUrl = emulatorBaseUrl
++      ? new URL(requestUrl.pathname, emulatorBaseUrl)
++      : new URL(requestUrl.toString())
++
++    if (emulatorBaseUrl) {
++      targetUrl.search = requestUrl.search
++    }
++
++    if (!targetUrl.searchParams.has('beta')) {
++      targetUrl.searchParams.set('beta', 'true')
++    }
++
+     const newInput =
+       input instanceof Request
+-        ? new Request(requestUrl.toString(), input)
+-        : requestUrl
+-    return { input: newInput, url: requestUrl }
++        ? new Request(targetUrl.toString(), input)
++        : targetUrl
++    return { input: newInput, url: targetUrl }
+   }
+ 
+   return { input, url: requestUrl }

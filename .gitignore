@@ -1,0 +1,25 @@
+node_modules/
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+.DS_Store
+
+# Session and prompt debris
+*.session.json
+*.prompt.tmp
+*.scratch.md
+transcript*
+
+# Secrets and local auth state
+.env
+.env.*
+!.env.example
+auth.json
+auth*.json
+
+.artifacts/*
+!.artifacts/pack/
+.artifacts/pack/*
+!.artifacts/pack/.gitignore
+.tmp/

@@ -1,0 +1,10 @@
+opencode-cc-camouflage is a companion maintenance plugin scaffold.
+
+This repository includes source snapshots in `fixtures/` for development and
+patch verification:
+- `opencode-anthropic-auth` (MIT, https://github.com/ex-machina-co/opencode-anthropic-auth)
+- `not-claude-code-emulator` as a reference fixture (README only; upstream has
+  no LICENSE file and its `package.json` declares MIT)
+
+These fixtures are kept in git for local work, but they are excluded from the
+npm published package via the `package.json` `files` field.
