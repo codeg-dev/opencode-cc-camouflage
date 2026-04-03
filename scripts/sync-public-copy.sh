@@ -37,6 +37,7 @@ RSYNC_ARGS=(
   --exclude=coverage/
   --exclude=.DS_Store
   --exclude=.sisyphus/
+  --exclude=.github/
   --exclude=.openchrome/
   --exclude=.opencode/
   --exclude=.claude/
