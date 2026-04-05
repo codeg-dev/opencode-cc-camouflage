@@ -11,6 +11,7 @@ type ManifestDoc = {
     name?: string
     preflightTargetChecks?: Array<{
       targetPath?: string
+      fallbackPath?: string
       contains?: string
     }>
   }>
@@ -26,6 +27,7 @@ describe('published metadata', () => {
     const peerPackage = (manifest.packages ?? []).find((item) => item.name === 'opencode-anthropic-auth')
     const expectedChecks = (peerPackage?.preflightTargetChecks ?? []).map((check) => ({
       targetPath: check.targetPath ?? '',
+      ...(check.fallbackPath !== undefined ? { fallbackPath: check.fallbackPath } : {}),
       contains: check.contains ?? '',
     }))
 

@@ -10,6 +10,7 @@ export type ManifestSourceFile = {
 
 export type ManifestTargetCheck = {
   targetPath: string
+  fallbackPath?: string
   contains: string
 }
 

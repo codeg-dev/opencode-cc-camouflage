@@ -158,12 +158,25 @@ function detectPatchStatus(peerRoot: string | undefined, supported: boolean): Pa
   }
 
   for (const check of publishedPatchPreflightChecks) {
-    const target = resolve(peerRoot, check.targetPath)
-    if (!existsSync(target)) {
-      return 'drift'
+    const primaryTarget = resolve(peerRoot, check.targetPath)
+
+    if (!existsSync(primaryTarget)) {
+      if (check.fallbackPath) {
+        const fallbackTarget = resolve(peerRoot, check.fallbackPath)
+        if (!existsSync(fallbackTarget)) {
+          return 'drift'
+        }
+        const fallbackContents = readFileSync(fallbackTarget, 'utf8')
+        if (!fallbackContents.includes(check.contains)) {
+          return 'drift'
+        }
+      } else {
+        return 'drift'
+      }
+      continue
     }
 
-    const contents = readFileSync(target, 'utf8')
+    const contents = readFileSync(primaryTarget, 'utf8')
     if (!contents.includes(check.contains)) {
       return 'drift'
     }

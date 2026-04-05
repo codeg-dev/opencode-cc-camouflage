@@ -1,5 +1,14 @@
 # opencode-cc-camouflage
 
+> [!WARNING]
+> **This repository is archived.**
+>
+> The upstream emulator `not-claude-code-emulator` was archived and stopped
+> successfully spoofing Anthropic around midnight KST on 2026-04-06. Without a
+> working emulator the patch lifecycle this plugin maintains has no effect.
+> This repository is therefore also archived and is no longer maintained.
+> No further updates or bug fixes will be issued.
+
 <p align="center">
   <strong>English</strong> |
   <a href="README.es.md">Español</a> |
@@ -160,6 +169,7 @@ workflow.
 
 ## Documentation
 
+- [docs/announcement.md](docs/announcement.md) - Archival announcement and tweet text
 - [docs/install.md](docs/install.md) - Prerequisites and install steps
 - [docs/rollback.md](docs/rollback.md) - Concrete rollback steps
 - [docs/compatibility.md](docs/compatibility.md) - Compatibility boundaries
